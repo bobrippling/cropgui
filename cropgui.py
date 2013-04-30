@@ -207,6 +207,7 @@ try:
         b *= scale
         cropspec = "%dx%d+%d+%d" % (r-l, b-t, l, t)
         target = base + "-crop" + ext
+        # FIXME: convert to JPG if needed
         task.add(['nice', 'jpegtran', '-crop', cropspec, image_name], target)
 finally:
     task.done()
