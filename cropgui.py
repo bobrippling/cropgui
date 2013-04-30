@@ -198,7 +198,7 @@ try:
         set_busy()
         if v == -1: break   # user closed app
         if v == 0: continue # user hit "next" / escape
-        
+
         base, ext = os.path.splitext(image_name)
         t, l, r, b = drag.top, drag.left, drag.right, drag.bottom
         t *= scale
@@ -216,3 +216,5 @@ finally:
 # 3. load image at requested size
 # 4. run GUI to get desired crop settings
 # 5. write output file
+
+# vi: et:
