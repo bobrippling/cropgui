@@ -1,42 +1,66 @@
 #!/bin/sh
 
-d="$(readlink -f "$(dirname "$0")")"
-
-cgpy="$d/cropgui.py"
-
-#passthru(){
-#	exec "$cgpy" "$@"
-#	exit $?
-#}
+set -eu
 
 usage(){
 	echo >&2 "Usage: $0 file"
 	exit 2
 }
 
+del_on_exit(){
+	trap "rm '$1'" EXIT
+}
+
 if test $# -ne 1
 then usage
 fi
 
-if ! test -e "$1"
+f="$1"
+orig_f="$f"
+if ! test -e "$f"
 then usage
 fi
 
-#if ! echo "$1" | grep -E '\.(png|gif)$' >/dev/null
-#then passthru "$@"
-#fi
+dir="$(readlink -f "$(dirname "$0")")"
+scriptname="${0##*/}"
+cropgui_py="$dir/cropgui.py"
 
-echo "$0: converting $1 to jpg"
+as_jpg=
+if ! echo "$f" | grep -E '\.jpe?g$' >/dev/null
+then
+	printf '%s: converting \"%s\" to jpg... ' "$scriptname" "$f"
 
-t="${TMPDIR:-/tmp}/$$.jpg"
-o="${TMPDIR:-/tmp}/$$-crop.jpg"
+	as_jpg="${TMPDIR:-/tmp}/$$.jpg"
 
-convert "$1" "$t" || exit $?
+	convert "$f" "$as_jpg" || exit $?
+	del_on_exit "$as_jpg"
+	f="$as_jpg"
 
-trap "rm -f $t" EXIT
+	printf 'done\n'
+fi
 
-"$cgpy" "$t"
+log="/tmp/cropgui.$$"
+del_on_exit "$log"
+if ! "$cropgui_py" "$f" >"$log" 2>&1
+then
+	cat >&2 "$log"
+	exit $?
+fi
+output="${f%.*}-crop.jpg"
 
-echo "$0: TODO: filename stuff" >&2
+cropped="${orig_f%.*}-cropped.jpg"
+if test -e "$cropped"
+then
+	i=1
+	while :
+	do
+		i=$(expr $i + 1)
+		cropped="${orig_f%.*}-cropped-$i.jpg"
+		if ! test -e "$cropped"
+		then break
+		fi
+	done
+fi
 
-mv -i "$o" "$(dirname "$1")"
+mv "$output" "$cropped"
+printf '%s: saved as %s\n' "$scriptname" "$cropped"
